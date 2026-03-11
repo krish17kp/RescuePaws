@@ -1,51 +1,74 @@
+RescuePaws
 
-RescuePaws is a real-time emergency coordination platform for animal rescues. It connects reporters, responders, and administrators to quickly report incidents, assign rescuers, and coordinate help using live updates and location sharing.
+Real-time coordination platform for reporting injured or stranded animals and connecting them with nearby responders.
 
-The backend is built with Node.js and Express, providing REST APIs for authentication, case management, and responder coordination. PostgreSQL is used as the primary database to store users, rescue cases, and operational data.
+Technical Overview
 
-Real-time communication between reporters and responders is handled using Socket.IO, allowing the system to push live updates such as case status changes, responder assignments, and location updates.
+RescuePaws is a full-stack web application designed to coordinate animal rescue operations in real time.
 
-The frontend is developed using React with Vite, providing a responsive dashboard for different roles including victim/reporters, responders, and administrators. The UI communicates with backend services through Axios-based API calls and WebSocket connections for real-time events.
+The system allows users to report rescue incidents, while responders receive alerts and coordinate the rescue through a shared dashboard.
 
-Location visualization is implemented using Leaflet and React-Leaflet, enabling responders to view incident locations and navigate to rescue sites.
+The backend exposes REST APIs for authentication, case creation, and responder assignment, while WebSocket communication enables live updates between reporters and responders.
 
-The project follows a modular architecture separating routes, middleware, sockets, and database configuration in the backend while maintaining reusable components and context-based state management in the frontend.
+Location data is visualized on an interactive map so responders can quickly identify the rescue location and navigate to the scene.
 
+Architecture
+Client (React + Vite)
+        │
+        │  REST API (Axios)
+        ▼
+Backend (Node.js + Express)
+        │
+        │  WebSockets
+        ▼
+Socket.IO Server
+        │
+        ▼
+PostgreSQL Database
 Tech Stack
 
 Frontend
-
-React
-
-Vite
-
-React Router
-
-Axios
-
-React Leaflet
+-React
+-Vite
+-React Router
+-Axios
+-Leaflet / React-Leaflet
 
 Backend
-
-Node.js
-
-Express.js
-
-Socket.IO
+-Node.js
+-Express.js
+-Socket.IO
 
 Database
+-PostgreSQL
 
-PostgreSQL
+Key Features
 
-Other Tools
+-Emergency case reporting
 
-JWT Authentication
+-Role-based dashboards (Reporter / Responder / Admin)
 
-Multer (file uploads)
+-Real-time rescue coordination using WebSockets
 
-WebSockets for real-time communication
-## Project Preview
+-Live incident location visualization
 
-![Preview 1](assets/preview%201%20edit.png)
+Status tracking for rescue operations
 
-![Preview 2](assets/preview%202%20edit.png)
+Screenshots
+Victim Interface
+
+Responder Interface
+
+Local Setup
+# clone repository
+git clone https://github.com/krish17kp/RescuePaws.git
+
+# backend
+cd backend
+npm install
+npm run dev
+
+# frontend
+cd ../frontend
+npm install
+npm run dev
