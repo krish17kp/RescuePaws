@@ -1,0 +1,20 @@
+.movement-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.movement-card.sent {
+  text-align: center;
+  color: var(--accent-green);
+  font-weight: 600;
+  padding: 20px;
+}
+
+.movement-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}

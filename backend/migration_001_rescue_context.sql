@@ -11,6 +11,19 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS reporter_availability VARCHAR(20) DEF
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS gps_accuracy DOUBLE PRECISION;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS location_updated_at TIMESTAMP DEFAULT NOW();
 
+-- Reporter availability constraint
+ALTER TABLE cases
+  ADD CONSTRAINT cases_reporter_availability_chk
+  CHECK (reporter_availability IN ('on_site', 'leaving', 'left'));
+
+-- Animal condition constraint
+ALTER TABLE cases
+  ADD CONSTRAINT cases_animal_condition_chk
+  CHECK (
+    animal_condition IS NULL
+    OR animal_condition IN ('injured', 'trapped', 'sick', 'abandoned', 'accident', 'unknown')
+  );
+
 -- Case photos (URLs from Cloudinary, no local storage)
 CREATE TABLE IF NOT EXISTS case_photos (
   id          SERIAL PRIMARY KEY,

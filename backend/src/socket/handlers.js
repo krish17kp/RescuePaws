@@ -70,6 +70,61 @@ function registerSocketHandlers(io) {
       }
     });
 
+    // Generic case event sender (socket-based quick updates / movement)
+    socket.on('case:send_event', async ({ case_id, event_type, message, metadata }) => {
+      if (!case_id || !event_type || !message) return;
+
+      try {
+        const caseResult = await pool.query('SELECT * FROM cases WHERE id = $1', [case_id]);
+        if (caseResult.rows.length === 0) return;
+
+        const theCase = caseResult.rows[0];
+        if (socket.userId !== theCase.victim_id && socket.userId !== theCase.responder_id) {
+          return;
+        }
+
+        const result = await pool.query(
+          `INSERT INTO case_events (case_id, user_id, user_role, event_type, message, metadata)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING *`,
+          [
+            case_id,
+            socket.userId,
+            socket.userRole,
+            event_type,
+            message,
+            metadata ? JSON.stringify(metadata) : null,
+          ]
+        );
+
+        const event = result.rows[0];
+
+        // Attach user name
+        const user = await pool.query('SELECT name FROM users WHERE id = $1', [socket.userId]);
+        event.user_name = user.rows[0]?.name;
+
+        // Broadcast to case room
+        io.to(`case:${case_id}`).emit('case:event_created', event);
+
+        // Keep core rescue context in sync for key event types
+        if (event_type === 'movement' && metadata?.landmark) {
+          await pool.query(
+            'UPDATE cases SET landmark = $1, location_updated_at = NOW() WHERE id = $2',
+            [metadata.landmark, case_id]
+          );
+        }
+
+        if (event_type === 'quick_update' && metadata?.reporter_availability) {
+          await pool.query(
+            'UPDATE cases SET reporter_availability = $1 WHERE id = $2',
+            [metadata.reporter_availability, case_id]
+          );
+        }
+      } catch (err) {
+        console.error('Socket event error:', err);
+      }
+    });
+
     // Set responder offline on disconnect
     socket.on('disconnect', async () => {
       console.log(`Socket disconnected: user ${socket.userId}`);

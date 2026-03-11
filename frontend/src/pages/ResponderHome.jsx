@@ -4,6 +4,11 @@ import { useSocket } from '../context/SocketContext';
 import AlertCard from '../components/AlertCard';
 import StatusBar from '../components/StatusBar';
 import MapView from '../components/MapView';
+import RescueLocationCard from '../components/RescueLocationCard';
+import QuickActions from '../components/QuickActions';
+import CaseTimeline from '../components/CaseTimeline';
+import PhotoGallery from '../components/PhotoGallery';
+import ProximityTracker from '../components/ProximityTracker';
 
 export default function ResponderHome() {
   const { socket } = useSocket();
@@ -49,7 +54,6 @@ export default function ResponderHome() {
     socket.on('new_sos', (sos) => {
       console.log('New SOS received:', sos);
       setAlerts((prev) => {
-        // Don't add duplicate
         if (prev.some((a) => a.caseId === sos.caseId)) return prev;
         return [sos, ...prev];
       });
@@ -119,7 +123,6 @@ export default function ResponderHome() {
     setError('');
 
     if (isOnline) {
-      // Going offline
       try {
         await api.patch('/users/me/toggle-online', {});
         setIsOnline(false);
@@ -131,7 +134,6 @@ export default function ResponderHome() {
       return;
     }
 
-    // Going online — need location
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -199,6 +201,20 @@ export default function ResponderHome() {
     setError('');
   };
 
+  // Calculate distance
+  const getDistance = () => {
+    if (!myPos || !victimPos) return null;
+    const R = 6371000; // meters
+    const dLat = ((victimPos[0] - myPos[0]) * Math.PI) / 180;
+    const dLon = ((victimPos[1] - myPos[1]) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((myPos[0] * Math.PI) / 180) *
+        Math.cos((victimPos[0] * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
   // ── RENDER ──
 
   if (state === 'resolved') {
@@ -219,10 +235,22 @@ export default function ResponderHome() {
   }
 
   if (state === 'active' && activeCase) {
+    const dist = getDistance();
+    let distLabel = null;
+    if (dist !== null) {
+      if (dist < 50) distLabel = '📍 Within 50 meters!';
+      else if (dist < 100) distLabel = `📍 ~${Math.round(dist)}m away`;
+      else if (dist < 1000) distLabel = `🚶 ${Math.round(dist)}m away`;
+      else distLabel = `🚗 ${(dist / 1000).toFixed(1)}km away`;
+    }
+
     return (
       <div className="page-wrapper">
         <div className="page-content">
-          <StatusBar status={activeCase.status} />
+          <StatusBar status={activeCase.status} detail={distLabel} />
+
+          {/* Rescue Location Card — primary guidance */}
+          <RescueLocationCard caseData={activeCase} />
 
           <div className="responder-info">
             <div className="responder-avatar" style={{ background: 'var(--gradient-red)' }}>
@@ -240,6 +268,19 @@ export default function ResponderHome() {
             </div>
           )}
 
+          {/* Rescue context photos — responder view */}
+          <PhotoGallery caseId={activeCase.id} />
+
+          {/* Proximity tracker — non-map guidance */}
+          <ProximityTracker victimPos={victimPos} responderPos={myPos} />
+
+          {/* Quick Actions — responder set */}
+          <QuickActions caseId={activeCase.id} role="responder" />
+
+          {/* Case Timeline */}
+          <CaseTimeline caseId={activeCase.id} />
+
+          {/* Map — preserved as-is */}
           <MapView
             victimPos={victimPos}
             responderPos={myPos}

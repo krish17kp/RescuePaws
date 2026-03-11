@@ -4,12 +4,18 @@ import { useSocket } from '../context/SocketContext';
 import SOSForm from '../components/SOSForm';
 import StatusBar from '../components/StatusBar';
 import MapView from '../components/MapView';
+import RescueLocationCard from '../components/RescueLocationCard';
+import QuickActions from '../components/QuickActions';
+import CaseTimeline from '../components/CaseTimeline';
+import MovementUpdate from '../components/MovementUpdate';
+import PhotoGallery from '../components/PhotoGallery';
 
 export default function VictimHome() {
   const { socket } = useSocket();
   const [state, setState] = useState('idle'); // idle | requesting | pending | assigned | resolved
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState('');
+  const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [activeCase, setActiveCase] = useState(null);
   const [responderPos, setResponderPos] = useState(null);
   const [error, setError] = useState('');
@@ -20,6 +26,7 @@ export default function VictimHome() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGpsAccuracy(pos.coords.accuracy);
       },
       () => {
         setLocationError('Please enable location access to send an SOS.');
@@ -54,7 +61,6 @@ export default function VictimHome() {
         setActiveCase((prev) => prev ? { ...prev, status } : prev);
         if (status === 'assigned') {
           setState('assigned');
-          // Refetch to get responder name
           api.get(`/cases/${caseId}`).then((res) => {
             setActiveCase(res.data.case);
           }).catch(() => {});
@@ -83,7 +89,7 @@ export default function VictimHome() {
     };
   }, [socket, activeCase?.id]);
 
-  const handleSOS = useCallback(async ({ emergency_type, description }) => {
+  const handleSOS = useCallback(async (formData) => {
     if (!location) return;
     setLoading(true);
     setError('');
@@ -91,10 +97,10 @@ export default function VictimHome() {
 
     try {
       const res = await api.post('/cases', {
-        emergency_type,
-        description,
+        ...formData,
         latitude: location.lat,
         longitude: location.lng,
+        gps_accuracy: gpsAccuracy,
       });
       setActiveCase(res.data.case);
       setState('pending');
@@ -104,7 +110,7 @@ export default function VictimHome() {
     } finally {
       setLoading(false);
     }
-  }, [location]);
+  }, [location, gpsAccuracy]);
 
   const handleCancel = async () => {
     if (!activeCase) return;
@@ -168,6 +174,9 @@ export default function VictimHome() {
             detail={eta ? `~${eta} min away` : null}
           />
 
+          {/* Rescue Location Card — above map */}
+          <RescueLocationCard caseData={activeCase} />
+
           {activeCase.responder_name && (
             <div className="responder-info">
               <div className="responder-avatar">
@@ -180,6 +189,19 @@ export default function VictimHome() {
             </div>
           )}
 
+          {/* Quick Actions — reporter set */}
+          <QuickActions caseId={activeCase.id} role="victim" />
+
+          {/* Movement update helper */}
+          <MovementUpdate caseId={activeCase.id} />
+
+          {/* Reporter photo uploads */}
+          <PhotoGallery caseId={activeCase.id} canUpload={true} />
+
+          {/* Case Timeline */}
+          <CaseTimeline caseId={activeCase.id} />
+
+          {/* Map — preserved as-is */}
           <MapView
             victimPos={[activeCase.victim_lat, activeCase.victim_lng]}
             responderPos={responderPos}
@@ -206,6 +228,9 @@ export default function VictimHome() {
               Cancel SOS
             </button>
           </div>
+          {/* Show quick actions even while waiting */}
+          {activeCase && <QuickActions caseId={activeCase.id} role="victim" />}
+          {activeCase && <CaseTimeline caseId={activeCase.id} />}
         </div>
       </div>
     );
