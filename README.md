@@ -1,5 +1,9 @@
 ## Project Preview
 
-![Preview 1](assets/preview%201%20edit.png)
+<p align="center">
+  <img src="assets/preview-1.png" width="700"/>
+</p>
 
-![Preview 2](assets/preview%202%20edit.png)
+<p align="center">
+  <img src="assets/preview-2.png" width="700"/>
+</p>
